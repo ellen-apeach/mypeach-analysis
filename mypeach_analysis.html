@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>마이피치 채팅 분석 — 프로덕트팀</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0e0e0e;
+    --bg2: #161616;
+    --bg3: #1f1f1f;
+    --border: rgba(255,255,255,0.08);
+    --border2: rgba(255,255,255,0.14);
+    --text: #f0ede8;
+    --muted: rgba(240,237,232,0.5);
+    --muted2: rgba(240,237,232,0.3);
+    --accent: #e8b86d;
+    --accent2: #c8956a;
+    --red: #e05f5f;
+    --amber: #e8a23a;
+    --green: #6db88a;
+    --blue: #6a9fd8;
+    --tag-red-bg: rgba(224,95,95,0.12);
+    --tag-amber-bg: rgba(232,162,58,0.12);
+    --tag-green-bg: rgba(109,184,138,0.12);
+    --tag-blue-bg: rgba(106,159,216,0.12);
+    --font-sans: 'Noto Sans KR', sans-serif;
+    --font-mono: 'DM Mono', monospace;
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-sans);
+    font-size: 15px;
+    line-height: 1.7;
+    font-weight: 300;
+  }
+
+  /* NAV */
+  nav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    background: rgba(14,14,14,0.85);
+    backdrop-filter: blur(12px);
+    border-bottom: 0.5px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 2.5rem; height: 52px;
+  }
+  .nav-brand { font-size: 13px; font-weight: 500; color: var(--accent); letter-spacing: 0.04em; }
+  .nav-links { display: flex; gap: 2rem; }
+  .nav-links a { font-size: 12px; color: var(--muted); text-decoration: none; letter-spacing: 0.03em; transition: color 0.2s; }
+  .nav-links a:hover { color: var(--text); }
+
+  /* LAYOUT */
+  .container { max-width: 960px; margin: 0 auto; padding: 0 2rem; }
+
+  section { padding: 6rem 0 5rem; }
+  section + section { border-top: 0.5px solid var(--border); }
+
+  /* HERO */
+  .hero { padding: 8rem 0 5rem; }
+  .hero-label {
+    font-size: 11px; font-family: var(--font-mono); color: var(--accent);
+    letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 1.5rem;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .hero-label::before { content: ''; display: block; width: 24px; height: 0.5px; background: var(--accent); }
+  h1 { font-size: clamp(2rem, 5vw, 3.2rem); font-weight: 700; line-height: 1.2; letter-spacing: -0.02em; margin-bottom: 1.2rem; }
+  h1 em { font-style: normal; color: var(--accent); }
+  .hero-sub { font-size: 16px; color: var(--muted); max-width: 560px; line-height: 1.8; }
+  .hero-meta { display: flex; gap: 2rem; margin-top: 2.5rem; }
+  .hero-meta-item { }
+  .hero-meta-num { font-size: 2rem; font-weight: 700; color: var(--text); font-family: var(--font-mono); }
+  .hero-meta-label { font-size: 12px; color: var(--muted); margin-top: 2px; }
+
+  /* SECTION TITLES */
+  .section-label {
+    font-size: 11px; font-family: var(--font-mono); color: var(--accent);
+    letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 0.6rem;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .section-label::before { content: ''; display: block; width: 16px; height: 0.5px; background: var(--accent); }
+  h2 { font-size: 1.6rem; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 0.5rem; }
+  .section-desc { font-size: 14px; color: var(--muted); margin-bottom: 2.5rem; max-width: 520px; line-height: 1.8; }
+
+  /* INSIGHT BOX */
+  .insight-box {
+    background: linear-gradient(135deg, rgba(232,184,109,0.08), rgba(200,149,106,0.04));
+    border: 0.5px solid rgba(232,184,109,0.25);
+    border-radius: 12px; padding: 1.4rem 1.6rem; margin-bottom: 2.5rem;
+  }
+  .insight-box p { font-size: 14px; color: var(--text); line-height: 1.8; }
+  .insight-box strong { color: var(--accent); font-weight: 500; }
+
+  /* STAT GRID */
+  .stat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 2.5rem; }
+  .stat-card {
+    background: var(--bg2); border: 0.5px solid var(--border);
+    border-radius: 10px; padding: 1.1rem 1.2rem;
+    transition: border-color 0.2s;
+  }
+  .stat-card:hover { border-color: var(--border2); }
+  .stat-num { font-size: 1.8rem; font-weight: 700; font-family: var(--font-mono); color: var(--text); }
+  .stat-label { font-size: 12px; color: var(--muted); margin-top: 4px; }
+
+  /* CHART GRID */
+  .chart-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 2.5rem; }
+  .chart-card {
+    background: var(--bg2); border: 0.5px solid var(--border);
+    border-radius: 12px; padding: 1.4rem 1.4rem 1.2rem;
+  }
+  .chart-title { font-size: 12px; color: var(--muted); margin-bottom: 1rem; font-weight: 500; }
+  .chart-wrap { position: relative; }
+
+  /* RISK TABLE */
+  .risk-table-wrap {
+    background: var(--bg2); border: 0.5px solid var(--border);
+    border-radius: 12px; overflow: hidden; margin-bottom: 2.5rem;
+  }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  thead tr { background: var(--bg3); }
+  th { padding: 11px 16px; text-align: left; font-size: 11px; font-weight: 500; color: var(--muted); letter-spacing: 0.04em; text-transform: uppercase; }
+  td { padding: 11px 16px; border-top: 0.5px solid var(--border); color: var(--text); }
+  tbody tr:hover { background: rgba(255,255,255,0.02); }
+  .tag {
+    display: inline-block; font-size: 11px; padding: 2px 8px;
+    border-radius: 4px; font-weight: 500;
+  }
+  .tag-red { background: var(--tag-red-bg); color: var(--red); }
+  .tag-amber { background: var(--tag-amber-bg); color: var(--amber); }
+  .tag-green { background: var(--tag-green-bg); color: var(--green); }
+  .tag-blue { background: var(--tag-blue-bg); color: var(--blue); }
+
+  /* INTENT CARDS */
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 2.5rem; }
+  .panel {
+    background: var(--bg2); border: 0.5px solid var(--border);
+    border-radius: 12px; padding: 1.4rem 1.6rem;
+  }
+  .panel-title { font-size: 12px; color: var(--muted); font-weight: 500; margin-bottom: 1rem; }
+  .intent-row { display: flex; gap: 10px; margin-bottom: 10px; align-items: flex-start; }
+  .intent-q {
+    font-size: 12px; background: var(--bg3); border-radius: 4px;
+    padding: 3px 9px; white-space: nowrap; flex-shrink: 0;
+    font-family: var(--font-mono); color: var(--accent);
+  }
+  .intent-a { font-size: 12px; color: var(--muted); line-height: 1.6; padding-top: 3px; }
+  .manager-row { display: flex; gap: 12px; margin-bottom: 12px; align-items: flex-start; }
+  .manager-icon { font-size: 16px; color: var(--muted); margin-top: 2px; flex-shrink: 0; }
+  .manager-label { font-size: 12px; font-weight: 500; color: var(--text); margin-bottom: 3px; }
+  .manager-ex { font-size: 11px; color: var(--muted); line-height: 1.6; }
+
+  /* PRODUCT OPP CARDS */
+  .opp-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  .opp-card {
+    background: var(--bg2); border: 0.5px solid var(--border);
+    border-radius: 12px; padding: 1.2rem 1.3rem;
+    transition: border-color 0.2s, transform 0.15s;
+  }
+  .opp-card:hover { border-color: var(--border2); transform: translateY(-2px); }
+  .opp-header { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+  .opp-rank {
+    font-size: 10px; font-family: var(--font-mono); padding: 2px 6px;
+    border-radius: 4px; font-weight: 500;
+  }
+  .opp-title { font-size: 13px; font-weight: 500; }
+  .opp-desc { font-size: 12px; color: var(--muted); line-height: 1.7; margin-bottom: 10px; }
+  .opp-effect {
+    font-size: 11px; color: var(--muted2); border-top: 0.5px solid var(--border);
+    padding-top: 8px; line-height: 1.6;
+  }
+
+  /* CONCLUSION */
+  .conclusion-box {
+    background: var(--bg2); border: 0.5px solid var(--border);
+    border-radius: 16px; padding: 2rem 2.2rem; text-align: center;
+    position: relative; overflow: hidden;
+  }
+  .conclusion-box::before {
+    content: '';
+    position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+    width: 200px; height: 1px;
+    background: linear-gradient(90deg, transparent, var(--accent), transparent);
+  }
+  .conclusion-q { font-size: 12px; color: var(--muted); margin-bottom: 1rem; font-family: var(--font-mono); }
+  .conclusion-text { font-size: 1.1rem; font-weight: 500; line-height: 1.8; max-width: 600px; margin: 0 auto; }
+  .conclusion-text em { font-style: normal; color: var(--accent); }
+
+  /* FADE-IN ANIMATION */
+  .fade-in { opacity: 0; transform: translateY(16px); transition: opacity 0.5s ease, transform 0.5s ease; }
+  .fade-in.visible { opacity: 1; transform: translateY(0); }
+
+  /* FOOTER */
+  footer {
+    border-top: 0.5px solid var(--border);
+    padding: 2rem 0;
+    text-align: center;
+    font-size: 12px;
+    color: var(--muted2);
+    font-family: var(--font-mono);
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <span class="nav-brand">MyPeach Chat Analysis</span>
+  <div class="nav-links">
+    <a href="#overview">Overview</a>
+    <a href="#risk">Risk</a>
+    <a href="#insight">Insight</a>
+    <a href="#product">Product</a>
+  </div>
+</nav>
+
+<div class="container">
+
+  <!-- HERO -->
+  <section class="hero" id="overview">
+    <div class="fade-in">
+      <p class="hero-label">마이피치 채팅 분석 · 2026</p>
+      <h1>고객은 대화를 원하는 게 아니라<br><em>안심을 원한다</em></h1>
+      <p class="hero-sub">55개 프로젝트, 38,246건 채팅 메시지를 분석했습니다. 고객과 매니저의 1:1 대화 패턴에서 우리가 해결해야 할 진짜 문제를 찾았습니다.</p>
+      <div class="hero-meta">
+        <div class="hero-meta-item">
+          <div class="hero-meta-num">38,246</div>
+          <div class="hero-meta-label">전체 메시지</div>
+        </div>
+        <div class="hero-meta-item">
+          <div class="hero-meta-num">55</div>
+          <div class="hero-meta-label">분석 프로젝트</div>
+        </div>
+        <div class="hero-meta-item">
+          <div class="hero-meta-num">1 : 1</div>
+          <div class="hero-meta-label">고객 : 매니저 비율</div>
+        </div>
+        <div class="hero-meta-item">
+          <div class="hero-meta-num">1,003</div>
+          <div class="hero-meta-label">리스크 신호 건수</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- RISK SECTION -->
+  <section id="risk">
+    <div class="fade-in">
+      <p class="section-label">Risk Signals</p>
+      <h2>채팅 속 리스크 신호</h2>
+      <p class="section-desc">고객 메시지 18,502건 중 리스크 관련 키워드가 감지된 건수와 패턴입니다.</p>
+
+      <div class="insight-box">
+        <p>고객 메시지의 본질은 <strong>정보 요청이 아니라 불안 해소를 위한 확인 요청</strong>입니다. "이거 맞나요?"는 모르는 게 아니라, 내가 이해한 게 맞는지 확인하고 싶은 것입니다.</p>
+      </div>
+
+      <div class="stat-grid">
+        <div class="stat-card">
+          <div class="stat-num" style="color: var(--red);">364</div>
+          <div class="stat-label">마감 퀄리티 관련</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-num" style="color: var(--amber);">234</div>
+          <div class="stat-label">응답 지연 / 재문의</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-num" style="color: var(--red);">198</div>
+          <div class="stat-label">일정 지연 / 입주 압박</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-num" style="color: var(--red);">142</div>
+          <div class="stat-label">누수 / 하자 의심</div>
+        </div>
+      </div>
+
+      <div class="chart-grid">
+        <div class="chart-card">
+          <p class="chart-title">리스크 카테고리별 발생 건수</p>
+          <div class="chart-wrap" style="height:260px;">
+            <canvas id="riskChart" role="img" aria-label="리스크 카테고리별 건수 차트"></canvas>
+          </div>
+        </div>
+        <div class="chart-card">
+          <p class="chart-title">고객 FAQ Top 10 — 불안 빈도</p>
+          <div class="chart-wrap" style="height:260px;">
+            <canvas id="faqChart" role="img" aria-label="고객 FAQ 빈도 차트"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <div class="risk-table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>고객</th>
+              <th>총 메시지</th>
+              <th>리스크 메시지</th>
+              <th>레벨</th>
+              <th>주요 불안 유형</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td>이지연</td><td style="font-family:var(--font-mono);color:var(--muted);">1,030</td><td style="font-family:var(--font-mono);">65건</td><td><span class="tag tag-red">위험</span></td><td style="color:var(--muted);font-size:12px;">일정 압박 + 마감 불안 복합</td></tr>
+            <tr><td>이영롱</td><td style="font-family:var(--font-mono);color:var(--muted);">1,205</td><td style="font-family:var(--font-mono);">56건</td><td><span class="tag tag-red">위험</span></td><td style="color:var(--muted);font-size:12px;">누수/하자 의심 반복</td></tr>
+            <tr><td>조안나</td><td style="font-family:var(--font-mono);color:var(--muted);">864</td><td style="font-family:var(--font-mono);">49건</td><td><span class="tag tag-amber">높음</span></td><td style="color:var(--muted);font-size:12px;">공정 변경 반복 → 불신 누적</td></tr>
+            <tr><td>이나우</td><td style="font-family:var(--font-mono);color:var(--muted);">613</td><td style="font-family:var(--font-mono);">39건</td><td><span class="tag tag-amber">높음</span></td><td style="color:var(--muted);font-size:12px;">마감 디테일 집중 지적</td></tr>
+            <tr><td>송미영/최성기</td><td style="font-family:var(--font-mono);color:var(--muted);">1,432</td><td style="font-family:var(--font-mono);">44건</td><td><span class="tag tag-amber">높음</span></td><td style="color:var(--muted);font-size:12px;">전반적 진행 불안 지속</td></tr>
+            <tr><td>정욱진</td><td style="font-family:var(--font-mono);color:var(--muted);">531</td><td style="font-family:var(--font-mono);">24건</td><td><span class="tag tag-green">보통</span></td><td style="color:var(--muted);font-size:12px;">소음 민원 우려</td></tr>
+            <tr><td>이해령</td><td style="font-family:var(--font-mono);color:var(--muted);">346</td><td style="font-family:var(--font-mono);">26건</td><td><span class="tag tag-green">보통</span></td><td style="color:var(--muted);font-size:12px;">추가비용 투명성 요구</td></tr>
+            <tr><td>이선범</td><td style="font-family:var(--font-mono);color:var(--muted);">641</td><td style="font-family:var(--font-mono);">33건</td><td><span class="tag tag-green">보통</span></td><td style="color:var(--muted);font-size:12px;">응답 지연 반복 누적</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- INSIGHT SECTION -->
+  <section id="insight">
+    <div class="fade-in">
+      <p class="section-label">Key Insights</p>
+      <h2>데이터가 말하는 고객 심리</h2>
+      <p class="section-desc">숫자 너머에 있는 고객의 실제 니즈입니다.</p>
+
+      <div class="two-col">
+        <div class="panel">
+          <p class="panel-title">겉 질문 → 실제 고객 니즈</p>
+          <div class="intent-row">
+            <span class="intent-q">"이거 맞나요?"</span>
+            <span class="intent-a">→ 내가 이해한 내용이 맞는지 확인하고 싶음</span>
+          </div>
+          <div class="intent-row">
+            <span class="intent-q">"언제 끝나나요?"</span>
+            <span class="intent-a">→ 이사/입주 일정이 밀릴까봐 불안함</span>
+          </div>
+          <div class="intent-row">
+            <span class="intent-q">"이 비용이 맞나요?"</span>
+            <span class="intent-a">→ 추가 비용이 정당한지 신뢰 확인</span>
+          </div>
+          <div class="intent-row">
+            <span class="intent-q">"사진 괜찮나요?"</span>
+            <span class="intent-a">→ 현장 상태가 정상인지 확인하고 싶음</span>
+          </div>
+          <div class="intent-row">
+            <span class="intent-q">"아직 확인 안 됐나요?"</span>
+            <span class="intent-a">→ 방치되고 있는 게 아닌지 불안함</span>
+          </div>
+        </div>
+
+        <div class="panel">
+          <p class="panel-title">매니저 긍정 응대 4가지 패턴</p>
+          <div class="manager-row">
+            <span class="manager-icon">🛡</span>
+            <div>
+              <p class="manager-label">안심시키기</p>
+              <p class="manager-ex">"실크 벽지는 마르면서 펴지니 걱정 마세요!"</p>
+            </div>
+          </div>
+          <div class="manager-row">
+            <span class="manager-icon">⚡</span>
+            <div>
+              <p class="manager-label">빠른 피드백 약속</p>
+              <p class="manager-ex">"10분 내로 다시 답변드리겠습니다"</p>
+            </div>
+          </div>
+          <div class="manager-row">
+            <span class="manager-icon">💬</span>
+            <div>
+              <p class="manager-label">친절한 설명</p>
+              <p class="manager-ex">"이 현상은 습도 때문에 일시적인 것이에요"</p>
+            </div>
+          </div>
+          <div class="manager-row">
+            <span class="manager-icon">🤝</span>
+            <div>
+              <p class="manager-label">공감 & 환영</p>
+              <p class="manager-ex">"믿고 맡겨주셔서 저희가 더 힘이 나네요"</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="insight-box">
+        <p>채팅은 사실상 <strong>변경 이력 관리 도구</strong>로 쓰이고 있습니다. 고객이 채팅에서 "이건 유지", "이건 변경"을 계속 남기지만, 채팅은 흐름형이라 나중에 <strong>최신 확정 내용을 찾기 어렵습니다.</strong> 이것이 반복 재문의의 핵심 원인입니다.</p>
+      </div>
+
+      <div class="two-col">
+        <div class="panel">
+          <p class="panel-title" style="color:var(--red);">🔴 고위험 신호</p>
+          <p style="font-size:13px;color:var(--muted);line-height:1.8;">누수/하자 의심, 소음/민원 발생, 일정 지연 — 즉각적인 매니저 개입이 필요한 신호. 방치 시 신뢰 이슈로 전환 가능.</p>
+        </div>
+        <div class="panel">
+          <p class="panel-title" style="color:var(--amber);">🟡 주의 필요 신호</p>
+          <p style="font-size:13px;color:var(--muted);line-height:1.8;">마감 퀄리티 반복 지적, 추가비용 투명성 요구, 응답 지연 누적 — 불만이 고위험으로 전환되기 전 선제 대응 필요.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PRODUCT OPP SECTION -->
+  <section id="product">
+    <div class="fade-in">
+      <p class="section-label">Product Opportunity</p>
+      <h2>채팅 데이터가 말하는 제품 기회</h2>
+      <p class="section-desc">채팅을 더 잘 만드는 것이 아니라, 채팅 속 정보를 구조화하는 방향입니다.</p>
+
+      <div class="opp-grid" style="margin-bottom:2.5rem;">
+        <div class="opp-card">
+          <div class="opp-header">
+            <span class="opp-rank" style="background:var(--tag-red-bg);color:var(--red);">1순위</span>
+            <span class="opp-title">고객 확인 필요함</span>
+          </div>
+          <p class="opp-desc">채팅에 흩어진 고객 액션을 분리해서 보여주기. "선택만 해주시면 돼요" 톤 — 업무가 아닌 서비스 요청처럼 느껴지게.</p>
+          <p class="opp-effect">매니저 리마인드 부담 감소 · 의사결정 지연 감소</p>
+        </div>
+        <div class="opp-card">
+          <div class="opp-header">
+            <span class="opp-rank" style="background:var(--tag-amber-bg);color:var(--amber);">2순위</span>
+            <span class="opp-title">공간별 결정사항 보드</span>
+          </div>
+          <p class="opp-desc">자재/마감/옵션을 공간 단위로 정리. 상태값: 확정 → 현장전달 → 시공반영 → 변경됨.</p>
+          <p class="opp-effect">선택 누락/오해 감소 · 재확인 채팅 감소</p>
+        </div>
+        <div class="opp-card">
+          <div class="opp-header">
+            <span class="opp-rank" style="background:var(--tag-blue-bg);color:var(--blue);">3순위</span>
+            <span class="opp-title">변경사항 타임라인</span>
+          </div>
+          <p class="opp-desc">자재/일정/비용 변경 이력과 후속 영향(비용·일정·현장 전달)을 연결해서 보여주기.</p>
+          <p class="opp-effect">분쟁 예방 · 신뢰 리스크 감소</p>
+        </div>
+        <div class="opp-card">
+          <div class="opp-header">
+            <span class="opp-rank" style="background:var(--tag-green-bg);color:var(--green);">4순위</span>
+            <span class="opp-title">AS/하자 이슈 트래커</span>
+          </div>
+          <p class="opp-desc">완료 후 품질 이슈를 채팅에서 분리해 상태값으로 관리. 접수 → 확인 중 → 처리 완료.</p>
+          <p class="opp-effect">"말했는데 처리됐나?" 불안 해소</p>
+        </div>
+        <div class="opp-card">
+          <div class="opp-header">
+            <span class="opp-rank" style="background:var(--tag-amber-bg);color:var(--amber);">5순위</span>
+            <span class="opp-title">일정 영향 표시</span>
+          </div>
+          <p class="opp-desc">변경이 전체 완료일/입주일에 영향을 주는지 판단 정보 제공. 단순 캘린더가 아닌 영향도 표시.</p>
+          <p class="opp-effect">입주 불안 완화 · 반복 일정 문의 감소</p>
+        </div>
+        <div class="opp-card">
+          <div class="opp-header">
+            <span class="opp-rank" style="background:rgba(255,255,255,0.06);color:var(--muted);">6순위</span>
+            <span class="opp-title">매니저 응대 초안</span>
+          </div>
+          <p class="opp-desc">반복 상황별 초안 자동 생성. 완전 자동 발송 X — 초안 생성 → 매니저 수정 → 발송 플로우.</p>
+          <p class="opp-effect">응대 품질 균일화 · 매니저 시간 절감</p>
+        </div>
+      </div>
+
+      <div class="conclusion-box">
+        <p class="conclusion-q">// 최종 결론</p>
+        <p class="conclusion-text">고객이 채팅을 많이 하는 이유는 직접 관리하고 싶어서가 아니라, <em>맡긴 일이 제대로 관리되고 있는지 확신이 부족했기 때문이다.</em> MyPeach의 핵심 기회는 채팅을 더 편하게 만드는 것이 아니라, 채팅 속 정보를 고객이 안심할 수 있는 <em>프로젝트 상태 정보로 바꾸는 것</em>이다.</p>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<footer>
+  <div class="container">
+    Apartmentary Product Team · 마이피치 채팅 분석 · 2026
+  </div>
+</footer>
+
+<script>
+// Charts
+const chartDefaults = {
+  responsive: true, maintainAspectRatio: false,
+  plugins: { legend: { display: false } }
+};
+
+new Chart(document.getElementById('riskChart'), {
+  type: 'bar',
+  data: {
+    labels: ['마감퀄리티','응답지연','일정지연','누수/하자','소음/민원','추가비용'],
+    datasets: [{
+      data: [364, 234, 198, 142, 76, 29],
+      backgroundColor: ['#e8a23a','#e8a23a','#e05f5f','#e05f5f','#e05f5f','#e8a23a'],
+      borderRadius: 4, borderSkipped: false,
+    }]
+  },
+  options: {
+    ...chartDefaults,
+    scales: {
+      x: {
+        ticks: { font: { size: 11, family: 'Noto Sans KR' }, color: 'rgba(240,237,232,0.45)', autoSkip: false, maxRotation: 30 },
+        grid: { display: false }, border: { color: 'rgba(255,255,255,0.06)' }
+      },
+      y: {
+        ticks: { font: { size: 11, family: 'DM Mono' }, color: 'rgba(240,237,232,0.35)' },
+        grid: { color: 'rgba(255,255,255,0.05)' }, border: { color: 'transparent' }
+      }
+    }
+  }
+});
+
+new Chart(document.getElementById('faqChart'), {
+  type: 'bar',
+  data: {
+    labels: ['마감/퀄리티','작업종료시간','익일공정','보안/비번','이사일정','소음민원','전기/콘센트','조명','자재확인','현장방문'],
+    datasets: [{
+      data: [142, 98, 85, 72, 64, 58, 45, 42, 38, 35],
+      backgroundColor: ['#e05f5f','#6a9fd8','#6a9fd8','#6a9fd8','#e05f5f','#e05f5f','#6a9fd8','#6a9fd8','#6a9fd8','#6a9fd8'],
+      borderRadius: 3, borderSkipped: false,
+    }]
+  },
+  options: {
+    ...chartDefaults,
+    indexAxis: 'y',
+    scales: {
+      x: {
+        ticks: { font: { size: 11, family: 'DM Mono' }, color: 'rgba(240,237,232,0.35)' },
+        grid: { color: 'rgba(255,255,255,0.05)' }, border: { color: 'transparent' }
+      },
+      y: {
+        ticks: { font: { size: 11, family: 'Noto Sans KR' }, color: 'rgba(240,237,232,0.45)' },
+        grid: { display: false }, border: { color: 'rgba(255,255,255,0.06)' }
+      }
+    }
+  }
+});
+
+// Fade-in on scroll
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
+}, { threshold: 0.1 });
+document.querySelectorAll('.fade-in').forEach(el => observer.observe(el));
+</script>
+</body>
+</html>
